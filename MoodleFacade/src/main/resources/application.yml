@@ -1,0 +1,27 @@
+server:
+  port: 8081
+
+moodle:
+  base-url: ${MOODLE_BASEURL:https://localhost:8080}
+  assignment-id: ${moodle_assignment_id:4}
+  token: ${MOODLE_TOKEN:98932106f6aaeee4aec4f1a70244dacb}
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/moodle_facade}
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect

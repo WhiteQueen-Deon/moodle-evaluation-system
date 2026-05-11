@@ -1,0 +1,101 @@
+services:
+  mariadb:
+    image: docker.io/bitnamilegacy/mariadb:12.0.2
+    networks:
+      - moodle-network
+    volumes:
+      - mariadb_data:/bitnami/mariadb
+    environment:
+      - MARIADB_USER=bn_moodle
+      - MARIADB_PASSWORD=somepassword
+      - MARIADB_ROOT_PASSWORD=rootpassword
+      - MARIADB_DATABASE=bitnami_moodle
+      - MARIADB_CHARACTER_SET=utf8mb4
+      - MARIADB_COLLATE=utf8mb4_unicode_ci
+      - MARIADB_EXTRA_FLAGS=--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  application:
+    image: docker.io/bitnamilegacy/moodle:5.0.2-debian-12-r2
+    networks:
+      - moodle-network
+    ports:
+      - "8080:8443"
+      - "443:443"
+    volumes:
+      - moodle_data:/bitnami/moodle
+      - apache_data:/bitnami/apache
+    depends_on:
+      - mariadb
+    environment:
+      - MOODLE_SKIP_BOOTSTRAP=no
+      - MOODLE_DATABASE_TYPE=mariadb
+      - MOODLE_DATABASE_HOST=mariadb
+      - MOODLE_DATABASE_PORT_NUMBER=3306
+      - MOODLE_DATABASE_NAME=bitnami_moodle
+      - MOODLE_DATABASE_USER=bn_moodle
+      - MOODLE_DATABASE_PASSWORD=somepassword
+      - MOODLE_USERNAME=admin
+      - MOODLE_PASSWORD=admin123
+      - MOODLE_EMAIL=admin@example.com
+      - MOODLE_SITE_NAME="Moodle"
+
+  facade-db:
+    image: postgres:15
+    networks:
+      - moodle-network
+    environment:
+      - POSTGRES_DB=facade
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  moodle-facade:
+    build:
+      context: ./MoodleFacade
+      dockerfile: Dockerfile
+    image: moodle-facade:latest
+    networks:
+      - moodle-network
+    ports:
+      - "8081:8081"
+    depends_on:
+      - facade-db
+      - application
+    environment:
+      MOODLE_BASEURL: https://application:8443
+      MOODLE_TOKEN: 98932106f6aaeee4aec4f1a70244dacb
+      moodle_assignment_id: 4
+      SPRING_DATASOURCE_URL: jdbc:postgresql://facade-db:5432/moodle_facade
+
+
+  evaluator-mock:
+    build:
+      context: ./EvaluatorMock
+      dockerfile: Dockerfile
+    image: evaluator-mock:latest
+    networks:
+      - moodle-network
+    ports:
+      - "8091"
+    depends_on:
+      - moodle-facade
+    environment:
+      FACADE_PULL_URL: http://moodle-facade:8081/pending
+      FACADE_RESULT_URL: http://moodle-facade:8081/results
+
+volumes:
+  mariadb_data:
+    driver: local
+  moodle_data:
+    driver: local
+  apache_data:
+    driver: local  
+  postgres_data:
+    driver: local
+
+networks:
+  moodle-network:
+    driver: bridge

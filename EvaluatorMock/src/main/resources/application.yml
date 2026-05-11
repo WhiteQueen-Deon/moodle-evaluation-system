@@ -1,0 +1,13 @@
+#spring.application.name=EvaluatorMock
+
+server:
+  port: 8091
+
+facade:
+  pull:
+    url: ${FACADE_PULL_URL:http://localhost:8081/pending}
+  result:
+    url: ${FACADE_RESULT_URL:http://localhost:8081/results}
+  
+poll:
+  intervalMs: 5000
